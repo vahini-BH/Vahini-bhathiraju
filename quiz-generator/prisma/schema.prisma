@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Quiz {
+  id          String   @id @default(cuid())
+  title       String
+  topic       String
+  roomCode    String   @unique
+  duration    Int      // Duration in minutes
+  numQuestions Int
+  createdBy   String   // Educator identifier
+  createdAt   DateTime @default(now())
+  isActive    Boolean  @default(true)
+  
+  questions   Question[]
+  responses   Response[]
+  
+  @@map("quizzes")
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  quizId      String
+  question    String
+  options     String[] // Array of option strings
+  correctAnswer Int    // Index of correct answer (0-3)
+  order       Int      // Question order in quiz
+  
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  responses   Response[]
+  
+  @@map("questions")
+}
+
+model Response {
+  id          String   @id @default(cuid())
+  quizId      String
+  questionId  String
+  studentName String
+  selectedAnswer Int?   // Index of selected answer, null if not answered
+  isCorrect   Boolean?
+  submittedAt DateTime @default(now())
+  
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  @@unique([quizId, questionId, studentName])
+  @@map("responses")
+}
+
+model Student {
+  id          String   @id @default(cuid())
+  name        String
+  quizId      String
+  joinedAt    DateTime @default(now())
+  completedAt DateTime?
+  
+  @@unique([name, quizId])
+  @@map("students")
+}
